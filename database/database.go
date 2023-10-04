@@ -25,7 +25,10 @@ func Init() {
 	connection := Connection(os.Getenv("DB_URL"))
 	defer CloseConnection(connection)
 
-	if err := CreateTable(connection); err != nil {
-		log.Fatalf("Can't create table: %s", err)
+	if err := CreateProductTable(connection); err != nil {
+		log.Fatalf("Can't create product table: %s", err)
+	}
+	if err := CreateOwnerTable(connection); err != nil {
+		log.Fatalf("Can't create user table: %s", err)
 	}
 }

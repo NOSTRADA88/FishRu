@@ -1,12 +1,13 @@
 package database
 
 import (
+	"FishRu/types"
 	"context"
 	"github.com/jackc/pgx/v5"
 	"log"
 )
 
-func CreateTable(conn *pgx.Conn) error {
+func CreateProductTable(conn *pgx.Conn) error {
 	query := `CREATE TABLE IF NOT EXISTS product (
 				id serial primary key, 
 				price int NOT NULL, 
@@ -19,16 +20,28 @@ func CreateTable(conn *pgx.Conn) error {
 	return err
 }
 
+func CreateOwnerTable(conn *pgx.Conn) error {
+	query := `CREATE TABLE IF NOT EXISTS owner (id serial primary key, login varchar(64) NOT NULL, password varchar(64) NOT NULL);`
+	_, err := conn.Exec(context.Background(), query)
+	return err
+}
+
+func VerifyUser(conn *pgx.Conn, user *types.User) (string, error) {
+	query := `SELECT login, password FROM owner WHERE login = $1 AND password = $2;`
+	msg, err := conn.Exec(context.Background(), query, &user.Login, &user.Password)
+	return msg.String(), err
+}
+
 func DropTable(conn *pgx.Conn) error {
 	query := `DROP TABLE product;`
 	_, err := conn.Exec(context.Background(), query)
 	return err
 }
 
-func SelectAll(conn *pgx.Conn) ([]ProductCard, error) {
+func SelectAll(conn *pgx.Conn) ([]types.ProductCard, error) {
 	query := `SELECT * FROM product;`
-	product := ProductCard{}
-	var productSlice []ProductCard
+	product := types.ProductCard{}
+	var productSlice []types.ProductCard
 	raws, err := conn.Query(context.Background(), query)
 	for raws.Next() {
 		if err := raws.Scan(&product.Id, &product.Price, &product.Name, &product.Description, &product.Photos, &product.Available); err != nil {
@@ -39,20 +52,20 @@ func SelectAll(conn *pgx.Conn) ([]ProductCard, error) {
 	return productSlice, err
 }
 
-func InsertProduct(conn *pgx.Conn, product *ProductCard) (string, error) {
+func InsertProduct(conn *pgx.Conn, product *types.ProductCard) (string, error) {
 	query := `INSERT INTO product(price, name, description, photos, available)
 		VALUES ($1, $2, $3, $4, true);`
 	msg, err := conn.Exec(context.Background(), query, int(product.Price), product.Name, product.Description, product.Photos)
 	return msg.String(), err
 }
 
-func DeleteProduct(conn *pgx.Conn, product *ProductCard) (string, error) {
+func DeleteProduct(conn *pgx.Conn, product *types.ProductCard) (string, error) {
 	query := `DELETE FROM product WHERE id = $1;`
 	msg, err := conn.Exec(context.Background(), query, product.Id)
 	return msg.String(), err
 }
 
-func ModifyProduct(conn *pgx.Conn, product *ProductCard) (string, error) {
+func ModifyProduct(conn *pgx.Conn, product *types.ProductCard) (string, error) {
 	upd0, upd1 := "UPDATE 0", "UPDATE 1"
 	if product.Name != "" {
 		query := `UPDATE product SET name = $1 WHERE id = $2;`

@@ -8,14 +8,10 @@ import (
 // Setup routing information
 
 func SetUpRouters(app *fiber.App) {
-	// list => get
-	// add => post
-
-	// update => put in work -_-
-
-	// delete => delete
 	app.Get("/", controller.ProductList)
 	app.Post("/", controller.CreateProduct)
 	app.Delete("/", controller.RemoveProduct)
 	app.Put("/", controller.UpdateProduct)
+
+	app.Post("/auth", controller.Authorization)
 }
