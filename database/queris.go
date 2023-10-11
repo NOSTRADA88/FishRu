@@ -11,10 +11,11 @@ func CreateProductTable(conn *pgx.Conn) error {
 	query := `CREATE TABLE IF NOT EXISTS product (
 				id serial primary key, 
 				price int NOT NULL, 
-				name varchar(50) NOT NULL, 
+				name varchar(60) NOT NULL, 
 				description text NOT NULL, 
-				photos text[] NOT NULL, 
-				available bool NOT NULL
+				photos text[] NOT NULL,
+				available bool NOT NULL,
+    			category varchar(60) NOT NULL
     );`
 	_, err := conn.Exec(context.Background(), query)
 	return err
@@ -38,7 +39,7 @@ func SelectAll(conn *pgx.Conn) ([]types.ProductCard, error) {
 	var productSlice []types.ProductCard
 	raws, err := conn.Query(context.Background(), query)
 	for raws.Next() {
-		if err := raws.Scan(&product.Id, &product.Price, &product.Name, &product.Description, &product.Photos, &product.Available); err != nil {
+		if err := raws.Scan(&product.Id, &product.Price, &product.Name, &product.Description, &product.Photos, &product.Category, &product.Available); err != nil {
 			log.Fatalf("Can't scan data: %s", err)
 		}
 		productSlice = append(productSlice, product)
@@ -48,9 +49,9 @@ func SelectAll(conn *pgx.Conn) ([]types.ProductCard, error) {
 
 func InsertProduct(conn *pgx.Conn, product *types.ProductCard) (bool, error) {
 	var ins bool
-	query := `INSERT INTO product(price, name, description, photos, available)
-		VALUES ($1, $2, $3, $4, true);`
-	msg, err := conn.Exec(context.Background(), query, int(product.Price), product.Name, product.Description, product.Photos)
+	query := `INSERT INTO product(price, name, description, photos, category, available)
+		VALUES ($1, $2, $3, $4, $5, true);`
+	msg, err := conn.Exec(context.Background(), query, int(product.Price), product.Name, product.Description, product.Photos, product.Category)
 	if msg.String() == "INSERT 0 1" {
 		ins = true
 	}
@@ -97,7 +98,13 @@ func ModifyProduct(conn *pgx.Conn, product *types.ProductCard, id int) (bool, er
 			return upd0, err
 		}
 	}
-
+	if product.Category != "" {
+		query := `UPDATE product SET category = $1 WHERE id = $2;`
+		_, err := conn.Exec(context.Background(), query, product.Category, id)
+		if err != nil {
+			return upd0, err
+		}
+	}
 	return upd1, nil
 }
 

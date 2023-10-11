@@ -16,10 +16,6 @@ func main() {
 	}
 
 	database.Init()
-	// if we need to drop table
-	//if err := database.DropTable(connection); err != nil {
-	//	log.Fatalf("Can't drop table: %s", err)
-	//}
 
 	app := fiber.New()
 	app.Use(logger.New())
