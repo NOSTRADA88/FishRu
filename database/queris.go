@@ -113,7 +113,7 @@ func SelectByID(conn *pgx.Conn, id int) (types.ProductCard, error) {
 	raws, err := conn.Query(context.Background(), query, id)
 	product := types.ProductCard{}
 	for raws.Next() {
-		if err := raws.Scan(&product.Id, &product.Price, &product.Name, &product.Description, &product.Photos, &product.Available); err != nil {
+		if err := raws.Scan(&product.Id, &product.Price, &product.Name, &product.Description, &product.Photos, &product.Category, &product.Available); err != nil {
 			log.Fatalf("Can't scan data: %s", err)
 		}
 	}
