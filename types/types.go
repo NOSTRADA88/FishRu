@@ -2,7 +2,7 @@ package types
 
 type ProductCard struct {
 	Id          int      `json:"id"`
-	Price       int32    `json:"price"`
+	Price       string   `json:"price"`
 	Name        string   `json:"name"`
 	Description string   `json:"description"`
 	Photos      []string `json:"photos"`

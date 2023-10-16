@@ -17,12 +17,14 @@ func main() {
 
 	database.Init()
 
-	app := fiber.New()
+	app := fiber.New(fiber.Config{DisablePreParseMultipartForm: true, StreamRequestBody: true})
 	app.Use(logger.New())
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "*",
 		AllowHeaders: "Origin, Content-Type, Accept",
 	}))
+
+	app.Static("/static", "./static")
 
 	router.SetUpRouters(app)
 

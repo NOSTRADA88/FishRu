@@ -10,7 +10,7 @@ import (
 func CreateProductTable(conn *pgx.Conn) error {
 	query := `CREATE TABLE IF NOT EXISTS product (
 				id serial primary key, 
-				price int NOT NULL, 
+				price text NOT NULL, 
 				name varchar(60) NOT NULL, 
 				description text NOT NULL, 
 				photos text[] NOT NULL,
@@ -39,7 +39,7 @@ func SelectAll(conn *pgx.Conn) ([]types.ProductCard, error) {
 	var productSlice []types.ProductCard
 	raws, err := conn.Query(context.Background(), query)
 	for raws.Next() {
-		if err := raws.Scan(&product.Id, &product.Price, &product.Name, &product.Description, &product.Photos, &product.Category, &product.Available); err != nil {
+		if err := raws.Scan(&product.Id, &product.Price, &product.Name, &product.Description, &product.Photos, &product.Available, &product.Category); err != nil {
 			log.Fatalf("Can't scan data: %s", err)
 		}
 		productSlice = append(productSlice, product)
@@ -51,7 +51,7 @@ func InsertProduct(conn *pgx.Conn, product *types.ProductCard) (bool, error) {
 	var ins bool
 	query := `INSERT INTO product(price, name, description, photos, category, available)
 		VALUES ($1, $2, $3, $4, $5, true);`
-	msg, err := conn.Exec(context.Background(), query, int(product.Price), product.Name, product.Description, product.Photos, product.Category)
+	msg, err := conn.Exec(context.Background(), query, product.Price, product.Name, product.Description, product.Photos, product.Category)
 	if msg.String() == "INSERT 0 1" {
 		ins = true
 	}
@@ -69,43 +69,45 @@ func DeleteProduct(conn *pgx.Conn, id int) (bool, error) {
 }
 
 func ModifyProduct(conn *pgx.Conn, product *types.ProductCard, id int) (bool, error) {
-	upd0, upd1 := false, true
 	if product.Name != "" {
 		query := `UPDATE product SET name = $1 WHERE id = $2;`
 		_, err := conn.Exec(context.Background(), query, product.Name, id)
 		if err != nil {
-			return upd0, err
+			return false, err
 		}
 	}
-	if product.Price != 0 {
+	if product.Price != "" {
 		query := `UPDATE product SET price = $1 WHERE id = $2;`
 		_, err := conn.Exec(context.Background(), query, product.Price, id)
 		if err != nil {
-			return upd0, err
+			return false, err
 		}
 	}
-	if len(product.Photos) > 0 {
-		query := `UPDATE product SET photos = $1 WHERE id = $2;`
-		_, err := conn.Exec(context.Background(), query, product.Photos, id)
-		if err != nil {
-			return upd0, err
-		}
-	}
+
+	// todo
+	//if len(product.Photos) > 0 {
+	//	query := `UPDATE product SET photos = $1 WHERE id = $2;`
+	//	_, err := conn.Exec(context.Background(), query, product.Photos, id)
+	//	if err != nil {
+	//		return upd0, err
+	//	}
+	//}
+
 	if product.Description != "" {
 		query := `UPDATE product SET description = $1 WHERE id = $2;`
 		_, err := conn.Exec(context.Background(), query, product.Description, id)
 		if err != nil {
-			return upd0, err
+			return false, err
 		}
 	}
 	if product.Category != "" {
 		query := `UPDATE product SET category = $1 WHERE id = $2;`
 		_, err := conn.Exec(context.Background(), query, product.Category, id)
 		if err != nil {
-			return upd0, err
+			return false, err
 		}
 	}
-	return upd1, nil
+	return true, nil
 }
 
 func SelectByID(conn *pgx.Conn, id int) (types.ProductCard, error) {
@@ -113,7 +115,7 @@ func SelectByID(conn *pgx.Conn, id int) (types.ProductCard, error) {
 	raws, err := conn.Query(context.Background(), query, id)
 	product := types.ProductCard{}
 	for raws.Next() {
-		if err := raws.Scan(&product.Id, &product.Price, &product.Name, &product.Description, &product.Photos, &product.Category, &product.Available); err != nil {
+		if err := raws.Scan(&product.Id, &product.Price, &product.Name, &product.Description, &product.Photos, &product.Available, &product.Category); err != nil {
 			log.Fatalf("Can't scan data: %s", err)
 		}
 	}

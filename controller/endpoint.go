@@ -31,6 +31,25 @@ func CreateProduct(ctx *fiber.Ctx) error {
 	context := fiber.Map{}
 	product := types.ProductCard{}
 
+	form, err := ctx.MultipartForm()
+	if err != nil {
+		context["status"] = fiber.StatusNotFound
+		context["error"] = err
+		return ctx.JSON(context)
+	}
+
+	for _, fileHeaders := range form.File {
+		for _, fileHeader := range fileHeaders {
+			filePath := "./static/uploads/" + fileHeader.Filename
+			if err := ctx.SaveFile(fileHeader, filePath); err != nil {
+				context["status"] = fiber.StatusBadRequest
+				context["error"] = err
+				return ctx.JSON(context)
+			}
+			product.Photos = append(product.Photos, filePath)
+		}
+	}
+
 	if err := ctx.BodyParser(&product); err != nil {
 		context["status"] = fiber.StatusBadRequest
 		context["error"] = err
@@ -83,11 +102,35 @@ func UpdateProduct(ctx *fiber.Ctx) error {
 	if err != nil {
 		context["status"] = fiber.StatusBadRequest
 		context["error"] = err
+		context["message"] = "Can't parse params in url"
 		return ctx.JSON(context)
 	}
+
+	//form, err := ctx.MultipartForm()
+	//
+	//if err != nil {
+	//	context["status"] = fiber.StatusNotFound
+	//	context["error"] = err
+	//	context["message"] = "Can't parse form entries from binary"
+	//	return ctx.JSON(context)
+	//}
+	//
+	//for _, fileHeaders := range form.File {
+	//	for _, fileHeader := range fileHeaders {
+	//		filePath := "./static/uploads/" + fileHeader.Filename
+	//		if err := ctx.SaveFile(fileHeader, filePath); err != nil {
+	//			context["status"] = fiber.StatusBadRequest
+	//			context["error"] = err
+	//			return ctx.JSON(context)
+	//		}
+	//		product.Photos = append(product.Photos, filePath)
+	//	}
+	//}
+
 	if err := ctx.BodyParser(&product); err != nil {
 		context["status"] = fiber.StatusBadRequest
 		context["error"] = err
+		context["message"] = "Can't parse request body"
 		return ctx.JSON(context)
 	}
 
@@ -95,10 +138,12 @@ func UpdateProduct(ctx *fiber.Ctx) error {
 	if err != nil {
 		context["status"] = fiber.StatusBadRequest
 		context["error"] = err
+		context["message"] = "Can't update product"
 		return ctx.JSON(context)
 	}
 	context["status"] = fiber.StatusOK
 	context["update"] = msg
+	context["message"] = "Product updated successfully"
 	return ctx.JSON(context)
 }
 
