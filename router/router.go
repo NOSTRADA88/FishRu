@@ -8,7 +8,7 @@ import (
 // Setup routing information
 
 func SetUpRouters(app *fiber.App) {
-	app.Get("/", controller.ProductList)
+	app.Get("/products", controller.ProductList)
 	app.Post("/admin", controller.CreateProduct)
 	app.Delete("/admin/:id", controller.RemoveProduct)
 	app.Put("/admin/:id", controller.UpdateProduct)
