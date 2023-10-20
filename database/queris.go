@@ -1,21 +1,26 @@
 package database
 
 import (
+	"FishRu/functions"
 	"FishRu/types"
 	"context"
+	"github.com/gosimple/slug"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"log"
+	"os"
+	"strings"
 )
 
 func CreateProductTable(conn *pgx.Conn) error {
 	query := `CREATE TABLE IF NOT EXISTS product (
 				id serial primary key, 
 				price text NOT NULL, 
-				name varchar(60) NOT NULL, 
+				name varchar(64) NOT NULL, 
 				description text NOT NULL, 
 				photos text[] NOT NULL,
-				available bool NOT NULL,
-    			category varchar(60) NOT NULL
+    			category varchar(64) NOT NULL,
+				slug varchar(64) NOT NULL
     );`
 	_, err := conn.Exec(context.Background(), query)
 	return err
@@ -37,11 +42,13 @@ func SelectAll(conn *pgx.Conn) ([]types.ProductCard, error) {
 	query := `SELECT * FROM product;`
 	product := types.ProductCard{}
 	var productSlice []types.ProductCard
-	raws, err := conn.Query(context.Background(), query)
-	for raws.Next() {
-		if err := raws.Scan(&product.Id, &product.Price, &product.Name, &product.Description, &product.Photos, &product.Available, &product.Category); err != nil {
+	rows, err := conn.Query(context.Background(), query)
+	for rows.Next() {
+		if err := rows.Scan(&product.Id, &product.Price, &product.Name, &product.Description, &product.Photos, &product.Category, &product.Slug); err != nil {
 			log.Fatalf("Can't scan data: %s", err)
 		}
+		product.Name = functions.ToUpperFirstSymbol(product.Name)
+		product.Category = functions.ToUpperFirstSymbol(product.Category)
 		productSlice = append(productSlice, product)
 	}
 	return productSlice, err
@@ -49,9 +56,9 @@ func SelectAll(conn *pgx.Conn) ([]types.ProductCard, error) {
 
 func InsertProduct(conn *pgx.Conn, product *types.ProductCard) (bool, error) {
 	var ins bool
-	query := `INSERT INTO product(price, name, description, photos, category, available)
-		VALUES ($1, $2, $3, $4, $5, true);`
-	msg, err := conn.Exec(context.Background(), query, product.Price, product.Name, product.Description, product.Photos, product.Category)
+	query := `INSERT INTO product(price, name, description, photos, category, slug)
+		VALUES ($1, $2, $3, $4, $5, $6);`
+	msg, err := conn.Exec(context.Background(), query, product.Price, strings.ToLower(product.Name), product.Description, product.Photos, strings.ToLower(product.Category), slug.Make(product.Name))
 	if msg.String() == "INSERT 0 1" {
 		ins = true
 	}
@@ -60,6 +67,19 @@ func InsertProduct(conn *pgx.Conn, product *types.ProductCard) (bool, error) {
 
 func DeleteProduct(conn *pgx.Conn, id int) (bool, error) {
 	var del bool
+	queryPhotosAddress := `SELECT photos FROM product WHERE id = $1;`
+	var photosArray pgtype.Array[string]
+	if err := conn.QueryRow(context.Background(), queryPhotosAddress, id).Scan(&photosArray); err != nil {
+		return del, err
+	}
+	photos := photosArray.Elements
+
+	for _, photo := range photos {
+		if err := os.Remove(photo); err != nil {
+			return false, err
+		}
+	}
+
 	query := `DELETE FROM product WHERE id = $1;`
 	msg, err := conn.Exec(context.Background(), query, id)
 	if msg.String() == "DELETE 1" {
@@ -112,12 +132,35 @@ func ModifyProduct(conn *pgx.Conn, product *types.ProductCard, id int) (bool, er
 
 func SelectByID(conn *pgx.Conn, id int) (types.ProductCard, error) {
 	query := `SELECT * FROM product WHERE id = $1;`
-	raws, err := conn.Query(context.Background(), query, id)
 	product := types.ProductCard{}
-	for raws.Next() {
-		if err := raws.Scan(&product.Id, &product.Price, &product.Name, &product.Description, &product.Photos, &product.Available, &product.Category); err != nil {
-			log.Fatalf("Can't scan data: %s", err)
-		}
-	}
+	err := conn.QueryRow(context.Background(), query, id).Scan(&product.Id, &product.Price, &product.Name, &product.Description, &product.Photos, &product.Category, &product.Slug)
+	product.Name = functions.ToUpperFirstSymbol(product.Name)
+	product.Category = functions.ToUpperFirstSymbol(product.Category)
 	return product, err
+}
+
+func SelectBySlug(conn *pgx.Conn, slug string) (types.ProductCard, error) {
+	query := `SELECT * FROM product WHERE slug = $1;`
+	product := types.ProductCard{}
+	err := conn.QueryRow(context.Background(), query, slug).Scan(&product.Id, &product.Price, &product.Name, &product.Description, &product.Photos, &product.Category, &product.Slug)
+	product.Name = functions.ToUpperFirstSymbol(product.Name)
+	product.Category = functions.ToUpperFirstSymbol(product.Category)
+	return product, err
+}
+
+func GetCategory(conn *pgx.Conn) ([]string, error) {
+	query := `SELECT category FROM product GROUP BY category;`
+	var cat []string
+	category := struct {
+		c string
+	}{}
+	rows, err := conn.Query(context.Background(), query)
+	for rows.Next() {
+		if err := rows.Scan(&category.c); err != nil {
+			return cat, err
+		}
+		category.c = functions.ToUpperFirstSymbol(category.c)
+		cat = append(cat, category.c)
+	}
+	return cat, err
 }

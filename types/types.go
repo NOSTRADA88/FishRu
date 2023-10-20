@@ -6,8 +6,8 @@ type ProductCard struct {
 	Name        string   `json:"name"`
 	Description string   `json:"description"`
 	Photos      []string `json:"photos"`
-	Available   bool     `json:"available"`
 	Category    string   `json:"category"`
+	Slug        string   `json:"slug"`
 }
 
 type User struct {
