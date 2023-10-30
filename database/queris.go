@@ -20,7 +20,8 @@ func CreateProductTable(conn *pgx.Conn) error {
 				description text NOT NULL, 
 				photos text[] NOT NULL,
     			category varchar(64) NOT NULL,
-				slug varchar(64) NOT NULL
+				slug_name varchar(64) NOT NULL,
+    			slug_category varchar(64) NOT NULL		
     );`
 	_, err := conn.Exec(context.Background(), query)
 	return err
@@ -44,7 +45,7 @@ func SelectAll(conn *pgx.Conn) ([]types.ProductCard, error) {
 	var productSlice []types.ProductCard
 	rows, err := conn.Query(context.Background(), query)
 	for rows.Next() {
-		if err := rows.Scan(&product.Id, &product.Price, &product.Name, &product.Description, &product.Photos, &product.Category, &product.Slug); err != nil {
+		if err := rows.Scan(&product.Id, &product.Price, &product.Name, &product.Description, &product.Photos, &product.Category, &product.SlugName, &product.SlugCategory); err != nil {
 			log.Fatalf("Can't scan data: %s", err)
 		}
 		product.Name = functions.ToUpperFirstSymbol(product.Name)
@@ -56,9 +57,9 @@ func SelectAll(conn *pgx.Conn) ([]types.ProductCard, error) {
 
 func InsertProduct(conn *pgx.Conn, product *types.ProductCard) (bool, error) {
 	var ins bool
-	query := `INSERT INTO product(price, name, description, photos, category, slug)
-		VALUES ($1, $2, $3, $4, $5, $6);`
-	msg, err := conn.Exec(context.Background(), query, product.Price, strings.ToLower(product.Name), product.Description, product.Photos, strings.ToLower(product.Category), slug.Make(product.Name))
+	query := `INSERT INTO product(price, name, description, photos, category, slug_name, slug_category)
+		VALUES ($1, $2, $3, $4, $5, $6, $7);`
+	msg, err := conn.Exec(context.Background(), query, product.Price, strings.ToLower(product.Name), product.Description, product.Photos, strings.ToLower(product.Category), slug.Make(product.Name), slug.Make(product.Category))
 	if msg.String() == "INSERT 0 1" {
 		ins = true
 	}
@@ -133,19 +134,35 @@ func ModifyProduct(conn *pgx.Conn, product *types.ProductCard, id int) (bool, er
 func SelectByID(conn *pgx.Conn, id int) (types.ProductCard, error) {
 	query := `SELECT * FROM product WHERE id = $1;`
 	product := types.ProductCard{}
-	err := conn.QueryRow(context.Background(), query, id).Scan(&product.Id, &product.Price, &product.Name, &product.Description, &product.Photos, &product.Category, &product.Slug)
+	err := conn.QueryRow(context.Background(), query, id).Scan(&product.Id, &product.Price, &product.Name, &product.Description, &product.Photos, &product.Category, &product.SlugName, &product.SlugCategory)
 	product.Name = functions.ToUpperFirstSymbol(product.Name)
 	product.Category = functions.ToUpperFirstSymbol(product.Category)
 	return product, err
 }
 
-func SelectBySlug(conn *pgx.Conn, slug string) (types.ProductCard, error) {
-	query := `SELECT * FROM product WHERE slug = $1;`
+func SelectBySlugName(conn *pgx.Conn, slug string) (types.ProductCard, error) {
+	query := `SELECT * FROM product WHERE slug_name = $1;`
 	product := types.ProductCard{}
-	err := conn.QueryRow(context.Background(), query, slug).Scan(&product.Id, &product.Price, &product.Name, &product.Description, &product.Photos, &product.Category, &product.Slug)
+	err := conn.QueryRow(context.Background(), query, slug).Scan(&product.Id, &product.Price, &product.Name, &product.Description, &product.Photos, &product.Category, &product.SlugName, &product.SlugCategory)
 	product.Name = functions.ToUpperFirstSymbol(product.Name)
 	product.Category = functions.ToUpperFirstSymbol(product.Category)
 	return product, err
+}
+
+func SelectBySlugCategory(conn *pgx.Conn, slug string) ([]types.ProductCard, error) {
+	query := `SELECT * FROM product WHERE slug_category = $1;`
+	product := types.ProductCard{}
+	var sliceProduct []types.ProductCard
+	raws, err := conn.Query(context.Background(), query, slug)
+	for raws.Next() {
+		if err := raws.Scan(&product.Id, &product.Price, &product.Name, &product.Description, &product.Photos, &product.Category, &product.SlugName, &product.SlugCategory); err != nil {
+			return sliceProduct, err
+		}
+		product.Name = functions.ToUpperFirstSymbol(product.Name)
+		product.Category = functions.ToUpperFirstSymbol(product.Category)
+		sliceProduct = append(sliceProduct, product)
+	}
+	return sliceProduct, err
 }
 
 func GetCategory(conn *pgx.Conn) ([]string, error) {

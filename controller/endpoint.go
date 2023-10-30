@@ -175,7 +175,7 @@ func ProductDetailSlug(ctx *fiber.Ctx) error {
 
 	slug := ctx.Params("slug")
 
-	product, err := database.SelectBySlug(connection, slug)
+	product, err := database.SelectBySlugName(connection, slug)
 
 	if err != nil {
 		context["status"] = fiber.StatusBadRequest
@@ -185,6 +185,25 @@ func ProductDetailSlug(ctx *fiber.Ctx) error {
 	context["status"] = fiber.StatusOK
 	context["data"] = product
 	return ctx.JSON(context)
+}
+
+func CategoryDetailBySlug(ctx *fiber.Ctx) error {
+	connection := database.Connection(os.Getenv("DB_URL"))
+	defer database.CloseConnection(connection)
+
+	context := fiber.Map{}
+
+	slug := ctx.Params("slug")
+
+	productSlice, err := database.SelectBySlugCategory(connection, slug)
+	if err != nil {
+		context["status"] = fiber.StatusBadRequest
+		context["error"] = err
+		return ctx.JSON(context)
+	}
+	context["status"] = fiber.StatusOK
+	context["data"] = productSlice
+	return ctx.JSON(productSlice)
 }
 
 func ProductDetailID(ctx *fiber.Ctx) error {
