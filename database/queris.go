@@ -150,7 +150,10 @@ func SelectBySlugName(conn *pgx.Conn, slug string) (types.ProductCard, error) {
 }
 
 func SelectBySlugCategory(conn *pgx.Conn, slug string) ([]types.ProductCard, error) {
-	query := `SELECT * FROM product WHERE slug_category = $1`
+	query := `SELECT DISTINCT ON (slug_category) * 
+			  FROM product 
+			  WHERE slug_category = $1
+			  ORDER BY slug_category;`
 	product := types.ProductCard{}
 	var sliceProduct []types.ProductCard
 	raws, err := conn.Query(context.Background(), query, slug)
