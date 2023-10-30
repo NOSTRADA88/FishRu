@@ -183,20 +183,3 @@ func SelectCategoryCard(conn *pgx.Conn) ([]types.ProductCard, error) {
 	}
 	return sliceProduct, err
 }
-
-func SelectCategory(conn *pgx.Conn) ([]string, error) {
-	query := `SELECT category FROM product GROUP BY category;`
-	var cat []string
-	category := struct {
-		c string
-	}{}
-	rows, err := conn.Query(context.Background(), query)
-	for rows.Next() {
-		if err := rows.Scan(&category.c); err != nil {
-			return cat, err
-		}
-		category.c = functions.ToUpperFirstSymbol(category.c)
-		cat = append(cat, category.c)
-	}
-	return cat, err
-}

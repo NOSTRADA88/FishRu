@@ -246,20 +246,3 @@ func ProductDetailID(ctx *fiber.Ctx) error {
 	context["data"] = product
 	return ctx.JSON(context)
 }
-
-func CategoryList(ctx *fiber.Ctx) error {
-	connection := database.Connection(os.Getenv("DB_URL"))
-	defer database.CloseConnection(connection)
-
-	context := fiber.Map{}
-
-	data, err := database.SelectCategory(connection)
-	if err != nil {
-		context["status"] = fiber.StatusBadRequest
-		context["error"] = err
-		return ctx.JSON(context)
-	}
-	context["status"] = fiber.StatusOK
-	context["data"] = data
-	return ctx.JSON(context)
-}
