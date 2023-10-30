@@ -168,7 +168,23 @@ func SelectBySlugCategory(conn *pgx.Conn, slug string) ([]types.ProductCard, err
 	return sliceProduct, err
 }
 
-func GetCategory(conn *pgx.Conn) ([]string, error) {
+func SelectCategoryCard(conn *pgx.Conn) ([]types.ProductCard, error) {
+	query := `SELECT DISTINCT ON (slug_category)* FROM product;`
+	product := types.ProductCard{}
+	var sliceProduct []types.ProductCard
+	raws, err := conn.Query(context.Background(), query)
+	for raws.Next() {
+		if err := raws.Scan(&product.Id, &product.Price, &product.Name, &product.Description, &product.Photos, &product.Category, &product.SlugName, &product.SlugCategory); err != nil {
+			return sliceProduct, err
+		}
+		product.Name = functions.ToUpperFirstSymbol(product.Name)
+		product.Category = functions.ToUpperFirstSymbol(product.Category)
+		sliceProduct = append(sliceProduct, product)
+	}
+	return sliceProduct, err
+}
+
+func SelectCategory(conn *pgx.Conn) ([]string, error) {
 	query := `SELECT category FROM product GROUP BY category;`
 	var cat []string
 	category := struct {

@@ -10,6 +10,7 @@ import (
 func SetUpRouters(app *fiber.App) {
 	app.Get("/categories", controller.CategoryList)
 	app.Get("/categories/:slug", controller.CategoryDetailBySlug)
+	app.Get("/categories-cards", controller.CategoryCardsList)
 
 	app.Get("/products", controller.ProductList)
 	app.Get("/products/:slug", controller.ProductDetailSlug)

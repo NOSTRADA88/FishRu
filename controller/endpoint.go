@@ -24,6 +24,23 @@ func ProductList(ctx *fiber.Ctx) error {
 	return ctx.JSON(context)
 }
 
+func CategoryCardsList(ctx *fiber.Ctx) error {
+	connection := database.Connection(os.Getenv("DB_URL"))
+	defer database.CloseConnection(connection)
+
+	context := fiber.Map{}
+
+	prodSlice, err := database.SelectCategoryCard(connection)
+	if err != nil {
+		context["status"] = fiber.StatusNotFound
+		context["error"] = err
+		return ctx.JSON(context)
+	}
+	context["status"] = fiber.StatusOK
+	context["data"] = prodSlice
+	return ctx.JSON(context)
+}
+
 func CreateProduct(ctx *fiber.Ctx) error {
 	connection := database.Connection(os.Getenv("DB_URL"))
 	defer database.CloseConnection(connection)
@@ -236,7 +253,7 @@ func CategoryList(ctx *fiber.Ctx) error {
 
 	context := fiber.Map{}
 
-	data, err := database.GetCategory(connection)
+	data, err := database.SelectCategory(connection)
 	if err != nil {
 		context["status"] = fiber.StatusBadRequest
 		context["error"] = err
