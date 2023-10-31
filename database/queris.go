@@ -76,9 +76,7 @@ func DeleteProduct(conn *pgx.Conn, id int) (bool, error) {
 	photos := photosArray.Elements
 
 	for _, photo := range photos {
-		if err := os.Remove(photo); err != nil {
-			return false, err
-		}
+		_ = os.Remove(photo)
 	}
 
 	query := `DELETE FROM product WHERE id = $1;`
